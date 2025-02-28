@@ -5,12 +5,21 @@ import java.util.LinkedList;
 public class WorkerThread {
 
     public static void main(String[] args) {
+        workerThreadStart();
+    }
+
+    private static void workerThreadStart() {
         BlockingQueue queue = new BlockingQueue();
 
         Thread worker = new Thread(() -> {
-            while (true) {
-                Runnable task = queue.get();
-                task.run();
+            while (!Thread.currentThread().isInterrupted()) {
+                Runnable task;
+                try {
+                    task = queue.get();
+                    task.run();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
             }
         });
         worker.start();
@@ -23,13 +32,9 @@ public class WorkerThread {
     private static class BlockingQueue {
         LinkedList<Runnable> tasks = new LinkedList<>();
 
-        public synchronized Runnable get() {
+        public synchronized Runnable get() throws InterruptedException {
             while (tasks.isEmpty()) {
-                try {
-                    wait();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
+                wait();
             }
             Runnable task = tasks.get(0);
             tasks.removeFirst();
@@ -50,7 +55,7 @@ public class WorkerThread {
                 try {
                     Thread.sleep(1000);
                 } catch (InterruptedException e) {
-                    e.printStackTrace();
+                    Thread.currentThread().interrupt();
                 }
                 System.out.println("Task finished: " + this);
             }
